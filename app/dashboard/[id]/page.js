@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getServiceById } from "@/lib/services";
+import ServiceActions from "@/components/ServiceActions"; 
 
 export default async function ServiceDetailPage({ params }) {
   const { id } = await params;
@@ -18,19 +19,14 @@ export default async function ServiceDetailPage({ params }) {
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
         {/* Шапка картки */}
-        <div className="flex justify-between items-start mb-6 border-b border-gray-100 pb-6">
+        <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-6">
           <div className="flex items-center gap-4">
             <span className="text-5xl bg-emerald-50 p-3 rounded-xl">{service.emoji}</span>
             <h1 className="text-3xl font-bold text-gray-900">{service.name}</h1>
           </div>
-          <div className="space-x-2">
-            <button className="bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium hover:bg-emerald-800 transition">
-              Редагувати
-            </button>
-            <button className="bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition">
-              Видалити
-            </button>
-          </div>
+          
+          {/* Вбудовуємо інтерактивний клієнтський компонент дій */}
+          <ServiceActions serviceId={service.id} />
         </div>
 
         {/* Параметри послуги */}

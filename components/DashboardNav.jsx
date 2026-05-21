@@ -5,8 +5,8 @@ import { usePathname } from "next/navigation";
 // Оновлений список посилань з двома сутностями для спа-салону
 const links = [
   { href: "/dashboard", label: "Огляд" },
-  { href: "/dashboard/services", label: "Послуги" },
-  { href: "/dashboard/bookings", label: "Бронювання" }, // Наша друга сутність!
+  { href: "/dashboard/services", label: "Послуги" }, // Додали /dashboard попереду!
+  { href: "/dashboard/bookings", label: "Бронювання" }, 
 ];
 
 export default function DashboardNav() {
