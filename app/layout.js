@@ -14,8 +14,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Spa Oasis",
-  description: "«Spa Oasis — ваш особистий простір гармонії та відновлення»",
+  title: {
+    default: "Спа-салон «Spa Oasis»",
+    template: "%s | Spa Oasis",
+  },
+  description: "Найкращий простір релаксу, масажу та краси у місті.",
 };
 
 export default function RootLayout({ children }) {

@@ -1,7 +1,6 @@
-// Компонент картки послуги з props
-// Тема: Спа-салон (Spa Oasis)
+import Link from "next/link";
 
-export default function MenuCard({ name, description, price, emoji, category, available = true }) {
+export default function MenuCard({ id, name, description, price, emoji, category, available = true }) {
   return (
     <div className={`bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition ${
       !available ? 'opacity-60' : ''
@@ -16,7 +15,6 @@ export default function MenuCard({ name, description, price, emoji, category, av
         <div className="flex justify-between items-start mb-2">
           <h3 className="text-lg font-semibold text-gray-900">{name}</h3>
           
-          {/* Умовний рендеринг статусу доступності */}
           {available ? (
             <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-700 font-medium">
               Доступно
@@ -31,12 +29,23 @@ export default function MenuCard({ name, description, price, emoji, category, av
         {/* Опис процедури */}
         <p className="text-gray-600 text-sm mb-3 line-clamp-2">{description}</p>
 
-        {/* Футер картки: Ціна та Категорія */}
+        {/* Футер картки: Ціна, категорія та лінк на динамічну сторінку */}
         <div className="flex justify-between items-center mt-4">
           <span className="text-emerald-700 font-bold text-lg">{price} грн</span>
-          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-            {category}
-          </span>
+          
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+              {category}
+            </span>
+            {id && (
+              <Link
+                href={`/services/${id}`}
+                className="text-xs text-emerald-600 hover:text-emerald-800 font-semibold transition"
+              >
+                Детальніше &rarr;
+              </Link>
+            )}
+          </div>
         </div>
       </div>
     </div>

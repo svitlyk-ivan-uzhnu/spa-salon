@@ -1,8 +1,19 @@
-// Компонент Header – навігація сайту
-// Тема: Спа-салон (Spa Oasis)
+'use client'
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+// Опис посилань як даних для нашого спа-салону
+const navLinks = [
+  { href: "/", label: "Головна" },
+  { href: "/services", label: "Послуги" },
+  { href: "/about", label: "Про нас" },
+  { href: "/contact", label: "Контакти" },
+  { href: "/dashboard", label: "⚙️ Адмінка" },
+];
 
 export default function Header() {
+  const pathname = usePathname();
+
   return (
     <header className="bg-emerald-800 text-white py-4 shadow-md">
       <div className="container mx-auto px-4 flex justify-between items-center">
@@ -11,24 +22,31 @@ export default function Header() {
           Spa Oasis 🌿
         </Link>
 
-        {/* Меню навігації */}
+        {/* Динамічна навігація */}
         <nav>
-          <ul className="flex gap-6 font-medium">
-            <li>
-              <Link href="/" className="hover:text-emerald-200 transition">
-                Головна
-              </Link>
-            </li>
-            <li>
-              <Link href="/menu" className="hover:text-emerald-200 transition">
-                Послуги
-              </Link>
-            </li>
-            <li>
-              <Link href="/about" className="hover:text-emerald-200 transition">
-                Про нас
-              </Link>
-            </li>
+          <ul className="flex gap-6">
+            {navLinks.map((link) => {
+              // Логіка визначення активної сторінки
+              const isActive =
+                link.href === "/"
+                  ? pathname === "/"
+                  : pathname.startsWith(link.href);
+
+              return (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className={`transition font-medium cursor-pointer ${
+                      isActive
+                        ? "text-emerald-300 font-bold border-b-2 border-emerald-300 pb-1"
+                        : "hover:text-emerald-200"
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         </nav>
       </div>
