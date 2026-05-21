@@ -1,49 +1,40 @@
-'use client'
-import { useState } from 'react'
+'use client' // ОБОВ'ЯЗКОВО, оскільки компонент обробляє клієнтські кліки та використовує роутер
+
 import { useRouter } from 'next/navigation'
 
-export default function ServiceActions({ serviceId }) {
-  const [showConfirm, setShowConfirm] = useState(false)
+export default function DrinkActions({ serviceId, serviceName }) {
   const router = useRouter()
 
-  const handleDelete = () => {
-    console.log(`Видалення спа-процедури з ID: ${serviceId}`)
-    setShowConfirm(false)
-    // Після видалення програмно повертаємо менеджера до списку послуг в адмінці
-    router.push('/dashboard/services')
-  }
+  async function handleDelete() {
+    // Діалогове вікно підтвердження для адміністратора спа-салону
+    if (!confirm(`Ви дійсно бажаєте видалити процедуру "${serviceName}" з каталогу салону?`)) return
 
-  if (showConfirm) {
-    return (
-      <div className="space-x-2 flex items-center bg-red-50 p-2 rounded-lg border border-red-100 animate-pulse">
-        <span className="text-red-600 font-bold mr-2 text-sm">Видалити процедуру?</span>
-        <button 
-          onClick={handleDelete}
-          className="bg-red-600 text-white px-4 py-1.5 rounded-md font-medium hover:bg-red-700 transition cursor-pointer"
-        >
-          Так
-        </button>
-        <button 
-          onClick={() => setShowConfirm(false)}
-          className="bg-gray-300 text-gray-700 px-4 py-1.5 rounded-md font-medium hover:bg-gray-400 transition cursor-pointer"
-        >
-          Ні
-        </button>
-      </div>
-    )
+    try {
+      // Надсилаємо DELETE-запит до нашого робочого API
+      const response = await fetch(`/api/services/${serviceId}`, { // або /api/drinks/${serviceId}
+        method: 'DELETE'
+      })
+
+      if (!response.ok) {
+        throw new Error('Помилка сервера під час спроби видалення послуги')
+      }
+
+      // Після успішного видалення перенаправляємо на головну сторінку каталогу
+      router.push('/dashboard/services') // або /dashboard/drinks
+      router.refresh() // Примусово оновлюємо серверні дані, щоб видалена позиція зникла зі списків
+    } catch (err) {
+      alert(err.message)
+    }
   }
 
   return (
-    <div className="space-x-2">
-      <button className="bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium hover:bg-emerald-800 transition cursor-pointer">
-        Редагувати
-      </button>
-      <button 
-        onClick={() => setShowConfirm(true)}
-        className="bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition cursor-pointer"
-      >
-        Видалити
-      </button>
+    <div className="flex gap-3">
+      <button
+            onClick={handleDelete}
+           className="bg-red-600 hover:bg-red-700 text-white font-bold text-sm tracking-wide px-5 py-2.5 rounded-xl cursor-pointer transition active:scale-98 shadow-sm"
+>
+            Видалити
+          </button>
     </div>
   )
 }

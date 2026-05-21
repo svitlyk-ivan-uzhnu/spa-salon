@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getServiceById } from "@/lib/services";
+import { getDrinkById as getServiceById } from "@/lib/services";
 import FavoriteButton from "@/components/FavoriteButton";
 
 export default async function ServiceDetailPage({ params }) {

@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import MenuCard from './MenuCard'
-import { services, getCategories } from '@/lib/services'
+import { drinks as services, getCategories } from '@/lib/services'
 
 const categories = getCategories()
 
