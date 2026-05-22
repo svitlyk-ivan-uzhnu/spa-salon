@@ -1,57 +1,45 @@
+import { Response } from "next/server";
+import dbConnect from "@/lib/db";
+import Service from "@/lib/models/Service";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import dbConnect from "@/lib/db";
-import User from "@/lib/models/User";
+import { updateServiceSchema } from "@/lib/validations/service";
+import { sanitizeObject } from "@/lib/sanitize"; // 👈 Імпортуємо санітизацію
 
 export async function PUT(request, { params }) {
+  const session = await getServerSession(authOptions);
+  if (!session || session.user.role !== "admin") {
+    return Response.json({ error: "Доступ заборонено" }, { status: 403 });
+  }
+
+  await dbConnect();
+
   try {
-    // 1. Обов'язково спочатку чекаємо асинхронні params у Next.js 15
     const { id } = await params;
+    const data = await request.json();
 
-    // 2. Перевірка доступу (тільки admin)
-    const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== "admin") {
-      return Response.json({ error: "Доступ заборонено" }, { status: 403 });
+    // 1. Валідація
+    const result = updateServiceSchema.safeParse(data);
+    if (!result.success) {
+      const messages = result.error.errors.map((e) => e.message);
+      return Response.json({ errors: messages }, { status: 400 });
     }
 
-    // 3. Безпечно читаємо JSON
-    const bodyText = await request.text();
-    if (!bodyText) {
-      return Response.json({ error: "Порожнє тіло запиту" }, { status: 400 });
-    }
-    const { role } = JSON.parse(bodyText);
+    // 2. 🧼 Санітизація
+    const sanitizedData = sanitizeObject(result.data);
 
-    // 4. Валідація ролі
-    if (!["user", "admin"].includes(role)) {
-      return Response.json(
-        { error: "Роль має бути 'user' або 'admin'" },
-        { status: 400 }
-      );
+    // 3. Оновлення в БД
+    const service = await Service.findByIdAndUpdate(id, sanitizedData, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (!service) {
+      return Response.json({ error: "Послугу не знайдено" }, { status: 404 });
     }
 
-    // 5. Захист від самозміни
-    if (id === session.user.id) {
-      return Response.json(
-        { error: "Не можна змінити власну роль!" },
-        { status: 400 }
-      );
-    }
-
-    await dbConnect();
-
-    const updatedUser = await User.findByIdAndUpdate(
-      id,
-      { role },
-      { new: true }
-    ).select("-password");
-
-    if (!updatedUser) {
-      return Response.json({ error: "Користувача не знайдено" }, { status: 404 });
-    }
-
-    return Response.json(updatedUser, { status: 200 });
+    return Response.json(service, { status: 200 });
   } catch (error) {
-    console.error("Помилка зміни ролі:", error);
-    return Response.json({ error: "Внутрішня помилка сервера" }, { status: 500 });
+    return Response.json({ error: "Помилка сервера" }, { status: 500 });
   }
 }

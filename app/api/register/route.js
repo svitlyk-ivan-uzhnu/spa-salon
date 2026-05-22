@@ -1,54 +1,78 @@
-import bcrypt from 'bcryptjs'
-import dbConnect from '@/lib/db'
-import User from '@/lib/models/User'
+import { NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
+import dbConnect from "@/lib/db";
+import User from "@/lib/models/User"; // 👈 Скориговано шлях до твоєї моделі користувача
+import { registerSchema } from "@/lib/validations/user";
+
+// 📝 Санітизацію (stripHtml) закоментовано до виконання Наступного Кроку
+import { stripHtml } from "@/lib/sanitize";
 
 export async function POST(request) {
   try {
-    const { name, email, password } = await request.json()
+    await dbConnect();
 
-    if (!name || !email || !password) {
-      return Response.json(
-        { error: "Всі поля обов'язкові" },
+    const data = await request.json();
+
+    // 🛡️ Валідація через zod за допомогою safeParse()
+    const result = registerSchema.safeParse(data);
+    if (!result.success) {
+      // Збираємо всі помилки (наприклад: "Мінімум 6 символів", "Некоректний формат email") в один рядок
+      const messages = result.error.errors.map((e) => e.message);
+      return NextResponse.json(
+        { error: messages.join(", ") },
         { status: 400 }
-      )
+      );
     }
 
-    if (password.length < 6) {
-      return Response.json(
-        { error: 'Пароль має містити щонайменше 6 символів' },
-        { status: 400 }
-      )
-    }
+    // Zod гарантує, що email уже в нижньому регістрі та без зайвих пробілів по боках!
+    const { email, password, name: rawName } = result.data;
+    const name = stripHtml(result.data.name);
 
-    await dbConnect()
+  
 
-    const existingUser = await User.findOne({ email })
+    // Перевірка унікальності email в базі даних
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return Response.json(
-        { error: 'Користувач з таким email вже існує' },
+      return NextResponse.json(
+        { error: "Користувач з таким email вже існує" },
         { status: 409 }
-      )
+      );
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12)
+    // Безпечно хешуємо пароль перед збереженням
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Створюємо нового користувача в MongoDB
     const user = await User.create({
       name,
       email,
       password: hashedPassword,
-    })
+    });
 
-    return Response.json(
+    return NextResponse.json(
       {
-        message: 'Реєстрація успішна',
-        user: { id: user._id, name: user.name, email: user.email },
+        message: "Користувача успішно створено 🎉",
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role, // за замовчуванням буде "user"
+        },
       },
       { status: 201 }
-    )
+    );
   } catch (error) {
-    console.error("❌ Помилка на бекенді реєстрації:", error)
-    return Response.json(
-      { error: `Помилка сервера: ${error.message || error}` },
+    // Додатковий захист на випадок одночасних паралельних запитів (дублювання індексу в MongoDB)
+    if (error.code === 11000) {
+      return NextResponse.json(
+        { error: "Користувач з таким email вже існує" },
+        { status: 409 }
+      );
+    }
+    console.error("Помилка реєстрації:", error);
+    return NextResponse.json(
+      { error: "Внутрішня помилка сервера" },
       { status: 500 }
-    )
+    );
   }
 }
