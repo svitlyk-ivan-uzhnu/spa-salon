@@ -1,10 +1,21 @@
-import { NextResponse } from 'next/server'
+import dbConnect from '@/lib/db'
 
-// Обробник для HTTP GET-запитів. Route Handlers завжди мають бути асинхронними (async).
 export async function GET() {
-  return NextResponse.json({
-    message: "API працює! Салон краси та спа 'Spa Oasis'",
-    status: "success",
-    timestamp: new Date().toISOString()
-  })
+  try {
+    // Пробуємо викликати наше підключення
+    await dbConnect()
+
+    // Якщо все супер, повертаємо успішну відповідь у форматі JSON
+    return Response.json({
+      message: 'MongoDB підключено! 🎉',
+      status: 'ok',
+      timestamp: new Date().toISOString()
+    })
+  } catch (error) {
+    // Якщо пароль неправильний або IP заблоковано, ми побачимо причину тут
+    return Response.json({
+      message: 'Помилка підключення до MongoDB ❌',
+      error: error.message,
+    }, { status: 500 })
+  }
 }

@@ -11,10 +11,9 @@ export default function ServicesPage() {
   const [error, setError] = useState(null)
 
   // Функція для отримання списку послуг з нашого API
- async function fetchServices() {
+  async function fetchServices() {
     try {
-      // Рядок setLoading(true) видалено звідси!
-      const response = await fetch('/api/services') // або /api/services
+      const response = await fetch('/api/services') // Повністю перейшли на спа-сервіси
       if (!response.ok) throw new Error('Не вдалося завантажити каталог послуг')
       const data = await response.json()
       setServices(data)
@@ -35,7 +34,8 @@ export default function ServicesPage() {
     if (!confirm('Ви дійсно бажаєте видалити цю процедуру з каталогу салону?')) return
 
     try {
-      const response = await fetch(`/api/drinks/${id}`, { // або `/api/services/${id}`
+      // ✅ Виправлено шлях: тепер точно шлемо запит на /api/services/ замість /api/drinks/
+      const response = await fetch(`/api/services/${id}`, { 
         method: 'DELETE'
       })
       if (!response.ok) throw new Error('Помилка під час видалення процедури')
@@ -47,7 +47,7 @@ export default function ServicesPage() {
     }
   }
 
-  // Якщо дані завантажуються — показуємо наш кастомний анімований TableSkeleton!
+  // Якщо дані завантажуються — показуємо анімований TableSkeleton
   if (loading) {
     return (
       <div className="space-y-6">
@@ -60,7 +60,7 @@ export default function ServicesPage() {
     )
   }
 
-  // Обробка екрана помилки з можливістю повторного запиту
+  // Обробка екрана помилки
   if (error) {
     return (
       <div className="max-w-md mx-auto mt-12 bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
@@ -78,13 +78,13 @@ export default function ServicesPage() {
 
   return (
     <div className="p-1">
-      {/* Шапка з лічильником кількості процедур та кнопкою додавання нових */}
+      {/* Шапка з лічильником кількості процедур */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-extrabold text-gray-900💡">
+        <h1 className="text-3xl font-extrabold text-gray-900">
           Керування послугами <span className="text-emerald-600 font-mono text-2xl">({services.length})</span>
         </h1>
         <Link
-          href="/dashboard/services/new" // або /dashboard/drinks/new
+          href="/dashboard/services/new"
           className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-bold text-sm tracking-wide transition shadow-sm active:scale-98"
         >
           + Додати послугу
@@ -105,17 +105,23 @@ export default function ServicesPage() {
           </thead>
           <tbody>
             {services.map(service => (
-              <tr key={service.id} className="border-t border-gray-100 hover:bg-gray-50/50 transition">
+              // ✅ Крок 1: Замінено service.id на service._id для унікального ключа рядка
+              <tr key={service._id} className="border-t border-gray-100 hover:bg-gray-50/50 transition">
+                
                 {/* Назва та емодзі з посиланням на детальну картку */}
                 <td className="px-6 py-4 font-semibold text-gray-900">
-                  <Link href={`/dashboard/services/${service.id}`} className="text-emerald-700 hover:text-emerald-800 hover:underline flex items-center gap-2">
-                    <span className="text-lg">{service.emoji}</span> {service.name}
+                  {/* ✅ Крок 2: Замінено посилання з id на _id, щоб прибрати помилку /undefined */}
+                  <Link href={`/dashboard/services/${service._id}`} className="text-emerald-700 hover:text-emerald-800 hover:underline flex items-center gap-2">
+                    <span className="text-lg">{service.emoji || '🌿'}</span> {service.name}
                   </Link>
                 </td>
+                
                 {/* Категорія */}
                 <td className="px-6 py-4 text-gray-500 text-sm">{service.category}</td>
+                
                 {/* Ціна */}
                 <td className="px-6 py-4 font-mono font-bold text-gray-700 text-sm">{service.price} грн</td>
+                
                 {/* Статус доступності бейджиком */}
                 <td className="px-6 py-4">
                   <span className={`px-2.5 py-1 rounded-full text-xs font-bold tracking-wide ${
@@ -126,10 +132,12 @@ export default function ServicesPage() {
                     {service.available ? 'Активна' : 'Призупинено'}
                   </span>
                 </td>
+                
                 {/* Кнопка швидкого інтерактивного видалення */}
                 <td className="px-6 py-4 text-right">
                   <button
-                    onClick={() => handleDelete(service.id)}
+                    // ✅ Крок 3: Замінено аргумент функції на service._id
+                    onClick={() => handleDelete(service._id)}
                     className="text-red-500 hover:text-red-700 text-sm font-bold tracking-wide cursor-pointer transition hover:underline"
                   >
                     Видалити
