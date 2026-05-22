@@ -1,26 +1,35 @@
-import { FavoritesProvider } from "@/contexts/FavoritesContext";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import "./globals.css";
+import { Inter } from 'next/font/google'
+import './globals.css'
+import AuthProvider from '@/components/AuthProvider'
+import { FavoritesProvider } from '@/contexts/FavoritesContext' 
+// ✅ Повертаємо імпорт хедера та футера з папки components
+import Header from '@/components/Header'
+import Footer from '@/components/Footer'
+
+const inter = Inter({ subsets: ['latin', 'cyrillic'] })
 
 export const metadata = {
-  title: {
-    default: "Спа-салон «Spa Oasis»",
-    template: "%s | Spa Oasis",
-  },
-  description: "Найкращий простір релаксу, масажу та краси у місті.",
-};
+  title: 'Spa Oasis | Панель керування',
+  description: 'Найкращий спа-салон у місті',
+}
 
 export default function RootLayout({ children }) {
   return (
     <html lang="uk">
-      <body className="bg-gray-50 text-gray-900 flex flex-col min-h-screen">
-        <FavoritesProvider>
-          <Header />
-          <main className="flex-grow">{children}</main>
-          <Footer />
-        </FavoritesProvider>
+      <body className={inter.className}>
+        <AuthProvider>
+          <FavoritesProvider>
+            {/* ✅ Виводимо Header вгорі кожної сторінки сайту */}
+            <Header />
+            
+            {/* Основний контент сторінок */}
+            {children}
+            
+            {/* ✅ Виводимо Footer в самому низу сайту */}
+            <Footer />
+          </FavoritesProvider>
+        </AuthProvider>
       </body>
     </html>
-  );
+  )
 }
