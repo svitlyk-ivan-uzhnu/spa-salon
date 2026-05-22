@@ -71,7 +71,7 @@ export default function LoginForm() {
               onChange={handleChange}
               required
               placeholder="admin@oasis.com"
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition"
+              className="w-full px-4 py-2.5 border text-gray-900 border-gray-200 rounded-xl focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition"
             />
           </div>
 
@@ -86,7 +86,7 @@ export default function LoginForm() {
               onChange={handleChange}
               required
               placeholder="••••••••"
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition"
+              className="w-full px-4 py-2.5 border text-gray-900 border-gray-200 rounded-xl focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition"
             />
           </div>
 

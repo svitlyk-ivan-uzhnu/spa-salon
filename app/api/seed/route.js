@@ -1,110 +1,69 @@
-import dbConnect from '@/lib/db'
-import Drink from '@/lib/models/Drink'
+// Тиждень 9: Оновлений seed-скрипт для Spa Oasis 🌿
+// Додано генерацію тестових користувачів з різними ролями (admin / user)
 
-// Початкові дані для каталогу спа-салону «Spa Oasis»
-const initialServices = [
-  {
-    name: 'Класичний масаж',
-    description: 'Загальний масаж тіла для зняття напруги та покращення тонусу м\'язів.',
-    price: 800,
-    category: 'Масаж',
-    emoji: '💆',
-    available: true,
-  },
-  {
-    name: 'Стоун-терапія',
-    description: 'Масаж гарячим вулканічним камінням для глибокого релаксу та прогрівання.',
-    price: 1200,
-    category: 'Масаж',
-    emoji: '💆',
-    available: true,
-  },
-  {
-    name: 'Пілінг обличчя',
-    description: 'Ніжне очищення шкіри за допомогою натуральних фруктових кислот.',
-    price: 600,
-    category: 'Догляд',
-    emoji: '✨',
-    available: true,
-  },
-  {
-    name: 'Гідромасажна ванна',
-    description: 'Розслаблююча процедура у ванні з морською сіллю та ефірними оліями.',
-    price: 700,
-    category: 'Водні',
-    emoji: '🛁',
-    available: true,
-  },
-  {
-    name: 'Шоколадне обгортання',
-    description: 'Живильна маска для всього тіла на основі натурального какао.',
-    price: 1100,
-    category: 'Догляд',
-    emoji: '🍫',
-    available: true,
-  },
-  {
-    name: 'Аромамасаж',
-    description: 'Масаж з використанням індивідуально підібраних ефірних олій.',
-    price: 900,
-    category: 'Масаж',
-    emoji: '🌿',
-    available: true,
-  },
-  {
-    name: 'Киснева маска',
-    description: 'Експрес-процедура для миттєвого зволоження та сяяння шкіри.',
-    price: 500,
-    category: 'Догляд',
-    emoji: '🧬',
-    available: true,
-  },
-  {
-    name: 'Хамам',
-    description: 'Традиційна турецька лазня з розпарюванням та пінним масажем.',
-    price: 1500,
-    category: 'Водні',
-    emoji: '💨',
-    available: true,
-  },
-  {
-    name: 'Детокс-обгортання',
-    description: 'Процедура виведення токсинів за допомогою лікувальних морських водоростей.',
-    price: 1300,
-    category: 'Догляд',
-    emoji: '🌱',
-    available: true,
-  },
-  {
-    name: 'Масаж обличчя',
-    description: 'Скульптуруючий масаж для покращення овалу обличчя та лімфодренажу.',
-    price: 550,
-    category: 'Масаж',
-    emoji: '💆',
-    available: true,
-  }
-]
+import dbConnect from "@/lib/db";
+import Service from "@/lib/models/Service"; // Твої послуги Спа
+import User from "@/lib/models/User";
+import bcrypt from "bcryptjs";
 
 export async function GET() {
   try {
-    // 1. Підключаємося до MongoDB Atlas
-    await dbConnect()
+    await dbConnect();
 
-    // 2. Очищаємо стару колекцію, щоб уникнути дублікатів при повторних викликах
-    await Drink.deleteMany({})
+    // 1. Очищення та наповнення послуг Спа (залиш свої існуючі послуги, якщо вони інші)
+    await Service.deleteMany({});
+    const services = await Service.insertMany([
+      {
+        title: "Класичний масаж тіла",
+        description: "Розслабляючий масаж для зняття напруги в м'язах.",
+        price: 800,
+        duration: 60,
+      },
+      {
+        title: "SPA-ритуал 'Кокосова насолода'",
+        description: "Ніжний пілінг тіла та зволожуюче обгортання з ароматом кокоса.",
+        price: 1200,
+        duration: 90,
+      }
+    ]);
 
-    // 3. Записуємо наш масив спа-процедур у хмару
-    const services = await Drink.create(initialServices)
+    // 2. Очищення та наповнення тестових користувачів
+    await User.deleteMany({});
+    
+    // Хешуємо дефолтний пароль для безпеки
+    const hashedPassword = await bcrypt.hash("password123", 10);
 
-    // Повертаємо красиву JSON-відповідь про успіх
+    const users = await User.insertMany([
+      {
+        name: "Адміністратор Спа",
+        email: "admin@test.com",
+        password: hashedPassword,
+        role: "admin",
+      },
+      {
+        name: "Іван Клієнт",
+        email: "user@test.com",
+        password: hashedPassword,
+        role: "user",
+      },
+    ]);
+
+    // 3. Повертаємо красиву відповідь
     return Response.json({
-      message: `Базу даних Spa Oasis успішно наповнено! Створено послуг: ${services.length}`,
-      services,
-    })
+      message: "🌱 Базу даних Spa Oasis успішно оновлено (Seed виконано)!",
+      servicesCreated: services.length,
+      usersCreated: users.length,
+      testAccounts: [
+        { email: "admin@test.com", password: "password123", role: "admin" },
+        { email: "user@test.com", password: "password123", role: "user" },
+      ],
+    }, { status: 200 });
+
   } catch (error) {
-    return Response.json(
-      { error: error.message },
-      { status: 500 }
-    )
+    console.error("Помилка під час виконання seed:", error);
+    return Response.json({ 
+      error: "Помилка сервера під час заповнення бази даних", 
+      details: error.message 
+    }, { status: 500 });
   }
 }

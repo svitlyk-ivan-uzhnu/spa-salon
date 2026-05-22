@@ -1,86 +1,76 @@
-import { NextResponse } from 'next/server'
-// Імпортуємо всі необхідні CRUD функції з нашого in-memory сховища
-import { getDrinkById, updateDrink, deleteDrink } from '@/lib/services'
+// Захист дій PUT та DELETE через authorize()
 
-// ==========================================
-// 1. GET — Отримання однієї процедури за ID
-// ==========================================
+import dbConnect from "@/lib/db";
+import Service from "@/lib/models/Service"; // 💡 Використовуй свою модель (Service або Drink)
+import { authorize } from "@/lib/authorize";
+
+// GET — публічний (перегляд окремої послуги)
 export async function GET(request, { params }) {
-  const { id } = await params
-  const service = getDrinkById(id)
-
-  if (!service) {
-    return NextResponse.json(
-      { error: 'Процедуру не знайдено в каталозі' },
-      { status: 404 }
-    )
-  }
-
-  return NextResponse.json(service)
-}
-
-// ==========================================
-// 2. PUT — Оновлення даних процедури за ID
-// ==========================================
-export async function PUT(request, { params }) {
-  const { id } = await params
+  await dbConnect();
+  const { id } = await params;
 
   try {
-    const body = await request.json()
+    const service = await Service.findById(id);
 
-    // Валідація обов'язкових для оновлення полів
-    if (!body.name || !body.category || !body.price) {
-      return NextResponse.json(
-        { error: "Поля 'name', 'category' та 'price' є обов'язковими для заповнення" },
-        { status: 400 }
-      )
+    if (!service) {
+      return Response.json({ error: "Послугу не знайдено" }, { status: 404 });
     }
 
-    // Валідація коректності ціни
-    if (typeof body.price !== 'number' || body.price <= 0) {
-      return NextResponse.json(
-        { error: 'Ціна має бути додатнім числовим значенням' },
-        { status: 400 }
-      )
-    }
-
-    // Оновлюємо дані у базі
-    const updatedService = updateDrink(id, body)
-
-    if (!updatedService) {
-      return NextResponse.json(
-        { error: 'Процедуру для оновлення не знайдено' },
-        { status: 404 }
-      )
-    }
-
-    return NextResponse.json(updatedService)
+    return Response.json(service);
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Невалідний або пошкоджений формат JSON' },
-      { status: 400 }
-    )
+    return Response.json({ error: "Невалідний ID" }, { status: 400 });
   }
 }
 
-// ==========================================
-// 3. DELETE — Видалення процедури за ID
-// ==========================================
-export async function DELETE(request, { params }) {
-  const { id } = await params
+// PUT — редагування послуги (ТІЛЬКИ ДЛЯ ADMIN)
+export async function PUT(request, { params }) {
+  // 🔐 Закриваємо доступ для сторонніх
+  const { session, error } = await authorize("admin");
+  if (error) return error;
 
-  const deletedService = deleteDrink(id)
+  await dbConnect();
+  const { id } = await params;
 
-  if (!deletedService) {
-    return NextResponse.json(
-      { error: 'Процедуру для видалення не знайдено' },
-      { status: 404 }
-    )
+  try {
+    const data = await request.json();
+    const service = await Service.findByIdAndUpdate(id, data, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (!service) {
+      return Response.json({ error: "Послугу не знайдено" }, { status: 404 });
+    }
+
+    return Response.json(service);
+  } catch (error) {
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map((err) => err.message);
+      return Response.json({ errors: messages }, { status: 400 });
+    }
+
+    return Response.json({ error: "Помилка сервера" }, { status: 500 });
   }
+}
 
-  // Повертаємо підтвердження успішного видалення та сам видалений об'єкт
-  return NextResponse.json({
-    message: `Процедуру "${deletedService.name}" успішно видалено з бази даних Spa Oasis`,
-    deleted: deletedService
-  })
+// DELETE — видалення послуги із бази даних (ТІЛЬКИ ДЛЯ ADMIN)
+export async function DELETE(request, { params }) {
+  // 🔐 Закриваємо доступ для сторонніх
+  const { session, error } = await authorize("admin");
+  if (error) return error;
+
+  await dbConnect();
+  const { id } = await params;
+
+  try {
+    const service = await Service.findByIdAndDelete(id);
+
+    if (!service) {
+      return Response.json({ error: "Послугу не знайдено" }, { status: 404 });
+    }
+
+    return Response.json({ message: `Послугу "${service.name}" успішно видалено` });
+  } catch (error) {
+    return Response.json({ error: "Невалідний ID" }, { status: 400 });
+  }
 }

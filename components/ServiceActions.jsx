@@ -1,58 +1,61 @@
-'use client'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+'use client';
 
-export default function ServiceActions({ serviceId }) {
-  const [showConfirm, setShowConfirm] = useState(false)
-  const router = useRouter()
+import Link from "next/link";
+import { useSession } from "next-auth/react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
-  // 🌿 Додаємо функцію для переходу на сторінку редагування
-  const handleEdit = () => {
-    router.push(`/dashboard/services/${serviceId}/edit`)
-  }
+export default function ServiceActions({ id }) {
+  const { data: session } = useSession();
+  const router = useRouter();
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleDelete = () => {
-    console.log(`Видалення спа-процедури з ID: ${serviceId}`)
-    setShowConfirm(false)
-    // Після видалення програмно повертаємо менеджера до списку послуг в адмінці
-    router.push('/dashboard/services')
-  }
+  // 🔐 Перевірка: кнопки видно ТИЛЬКИ якщо роль користувача — "admin"
+  const isAdmin = session?.user?.role === "admin";
 
-  if (showConfirm) {
-    return (
-      <div className="space-x-2 flex items-center bg-red-50 p-2 rounded-lg border border-red-100 animate-pulse">
-        <span className="text-red-600 font-bold mr-2 text-sm">Видалити процедуру?</span>
-        <button 
-          onClick={handleDelete}
-          className="bg-red-600 text-white px-4 py-1.5 rounded-md font-medium hover:bg-red-700 transition cursor-pointer"
-        >
-          Так
-        </button>
-        <button 
-          onClick={() => setShowConfirm(false)}
-          className="bg-gray-300 text-gray-700 px-4 py-1.5 rounded-md font-medium hover:bg-gray-400 transition cursor-pointer"
-        >
-          Ні
-        </button>
-      </div>
-    )
-  }
+  // Якщо користувач не адмін, компонент просто нічого не рендерить (повертає null)
+  if (!isAdmin) return null;
+
+  const handleDelete = async () => {
+    if (!confirm("Ви впевнені, що хочете видалити цю послугу?")) return;
+    
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/services/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Помилка при видаленні");
+      }
+
+      alert("Послугу успішно видалено");
+      router.refresh(); // Оновлюємо сторінку, щоб послуга зникла зі списку
+    } catch (error) {
+      alert(error.message || "Не вдалося видалити послугу");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
-    <div className="space-x-2">
-      {/* 🌿 Додаємо подію onClick до кнопки "Редагувати" */}
-      <button 
-        onClick={handleEdit}
-        className="bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium hover:bg-emerald-800 transition cursor-pointer"
+    <div className="flex gap-2 items-center">
+      {/* Кнопка Редагувати */}
+      <Link 
+        href={`/dashboard/services/${id}/edit`}
+        className="text-xs px-3 py-1.5 font-bold bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors shadow-sm"
       >
-        Редагувати
-      </button>
+        ✏️ Редагувати
+      </Link>
+
+      {/* Кнопка Видалити */}
       <button 
-        onClick={() => setShowConfirm(true)}
-        className="bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition cursor-pointer"
+        onClick={handleDelete}
+        disabled={isDeleting}
+        className="text-xs px-3 py-1.5 font-bold bg-rose-50 text-rose-600 border border-rose-200 rounded-lg hover:bg-rose-100 transition-colors shadow-sm cursor-pointer disabled:opacity-50"
       >
-        Видалити
+        {isDeleting ? "..." : "🗑️ Видалити"}
       </button>
     </div>
-  )
+  );
 }

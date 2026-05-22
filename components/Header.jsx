@@ -59,6 +59,28 @@ export default function Header() {
               <Link href="/dashboard"
                 className="text-emerald-200 hover:text-white text-sm font-semibold transition flex items-center gap-1">
                 👤 {session.user.name}
+                {/* Блок аутентифікації користувача */}
+{session ? (
+  <div className="flex items-center gap-3 ml-4 pl-4 border-l border-emerald-800">
+    
+    {/* Бейдж ролі: червоний для адміна, золотий для користувача */}
+    <span className={`text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full shadow-sm ${
+      session.user.role === "admin"
+        ? "bg-rose-600 text-rose-50 border border-rose-500"
+        : "bg-amber-500 text-amber-950 border border-amber-400"
+    }`}>
+      {session.user.role}
+    </span>
+    
+  </div>
+) : (
+  <Link
+    href="/auth/login"
+    className="ml-4 pl-4 border-l border-emerald-800 bg-emerald-800 hover:bg-emerald-700 text-emerald-100 hover:text-white text-xs font-bold px-4 py-2 rounded-xl transition-all"
+  >
+    Увійти
+  </Link>
+)}
               </Link>
               {/* Кнопка Виходу */}
               <button

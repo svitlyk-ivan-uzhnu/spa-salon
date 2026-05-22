@@ -45,6 +45,7 @@ export default function ServicesPage() {
     } catch (err) {
       alert(err.message)
     }
+    
   }
 
   // Якщо дані завантажуються — показуємо анімований TableSkeleton
@@ -75,7 +76,17 @@ export default function ServicesPage() {
       </div>
     )
   }
-
+    {/* Якщо користувач адмін — показуємо інструменти керування */}
+{session?.user?.role === "admin" && (
+  <div className="flex gap-2 mt-4">
+    <button className="text-xs px-3 py-1 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 transition">
+      Редагувати
+    </button>
+    <button className="text-xs px-3 py-1 bg-rose-50 text-rose-600 border border-rose-200 rounded-lg hover:bg-rose-100 transition">
+      Видалити
+    </button>
+  </div>
+)}
   return (
     <div className="p-1">
       {/* Шапка з лічильником кількості процедур */}

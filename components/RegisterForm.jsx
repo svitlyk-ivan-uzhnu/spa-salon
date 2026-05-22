@@ -34,7 +34,7 @@ export default function RegisterForm() {
 
     try {
       // 1. Надсилаємо запит на створення користувача у наш API роут
-      const res = await fetch('/api/auth/register', {
+      const res = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -99,7 +99,7 @@ export default function RegisterForm() {
               onChange={handleChange}
               required
               placeholder="Іван Іванов"
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition"
+              className="w-full px-4 py-2.5 text-gray-900 placeholder-gray-400 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition"
             />
           </div>
 
@@ -114,7 +114,7 @@ export default function RegisterForm() {
               onChange={handleChange}
               required
               placeholder="example@oasis.com"
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition"
+              className="w-full px-4 py-2.5 text-gray-900 placeholder-gray-400 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition"
             />
           </div>
 
@@ -130,7 +130,7 @@ export default function RegisterForm() {
               required
               minLength={6}
               placeholder="••••••••"
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition"
+              className="w-full px-4 py-2.5 text-gray-900 placeholder-gray-400 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition"
             />
           </div>
 
@@ -146,7 +146,7 @@ export default function RegisterForm() {
               required
               minLength={6}
               placeholder="••••••••"
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition"
+              className="w-full px-4 py-2.5 text-gray-900 placeholder-gray-400 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition"
             />
           </div>
 

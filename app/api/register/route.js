@@ -6,7 +6,6 @@ export async function POST(request) {
   try {
     const { name, email, password } = await request.json()
 
-    // Валідація
     if (!name || !email || !password) {
       return Response.json(
         { error: "Всі поля обов'язкові" },
@@ -21,12 +20,9 @@ export async function POST(request) {
       )
     }
 
-    // Підключаємось до бази даних
     await dbConnect()
 
-    // Перевірка чи email вже зайнятий
     const existingUser = await User.findOne({ email })
-
     if (existingUser) {
       return Response.json(
         { error: 'Користувач з таким email вже існує' },
@@ -34,10 +30,7 @@ export async function POST(request) {
       )
     }
 
-    // Хешуємо пароль
     const hashedPassword = await bcrypt.hash(password, 12)
-
-    // Створюємо користувача
     const user = await User.create({
       name,
       email,
@@ -47,28 +40,14 @@ export async function POST(request) {
     return Response.json(
       {
         message: 'Реєстрація успішна',
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-        },
+        user: { id: user._id, name: user.name, email: user.email },
       },
       { status: 201 }
     )
   } catch (error) {
-    console.error("❌ Помилка реєстрації:", error)
-
-    if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map((err) => err.message)
-      return Response.json(
-        { error: messages.join(', ') },
-        { status: 400 }
-      )
-    }
-
+    console.error("❌ Помилка на бекенді реєстрації:", error)
     return Response.json(
-      { error: 'Помилка сервера під час реєстрації' },
+      { error: `Помилка сервера: ${error.message || error}` },
       { status: 500 }
     )
   }
