@@ -1,39 +1,38 @@
+// components/RoleToggle.jsx
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner"; // 🔔 Додаємо імпорт sonner для преміальних сповіщень
 
-export default function RoleToggle({ userId, currentRole, currentUserId }) {
-  const [loading, setLoading] = useState(false);
+export default function RoleToggle({ userId, currentRole }) {
   const router = useRouter();
-
-  // Не показуємо кнопку для самого себе
-  if (userId === currentUserId) {
-    return <span className="text-xs text-slate-400 font-medium italic">(це ви)</span>;
-  }
-
-  const newRole = currentRole === "admin" ? "user" : "admin";
+  const [loading, setLoading] = useState(false);
 
   const handleToggle = async () => {
-    if (!confirm(`Змінити роль на ${newRole}?`)) return;
+    const newRole = currentRole === "admin" ? "user" : "admin";
     setLoading(true);
 
     try {
-      const response = await fetch(`/api/users/${userId}`, {
+      const response = await fetch(`/api/users/${userId}/role`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: newRole }),
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        alert(data.error || "Помилка зміни ролі");
+        const data = await response.json().catch(() => ({}));
+        // ❌ Замість застарілого alert() викликаємо красивий тоаст помилки
+        toast.error(data.error || "Не вдалося змінити статус доступу");
         return;
       }
 
-      router.refresh(); // Оновлюємо дані на сторінці
-    } catch (error) {
-      alert("Помилка з'єднання");
+      // 🎉 Успішно змінено — показуємо красиве сповіщення
+      toast.success(`✨ Права доступу оновлено на: ${newRole === "admin" ? "Адміністратор 👑" : "Гість 👤"}`);
+      router.refresh(); // Оновлюємо серверні дані на сторінці
+    } catch {
+      // ❌ Обробка помилки мережі
+      toast.error("⚠️ Помилка з'єднання з сервером MongoDB");
     } finally {
       setLoading(false);
     }
@@ -43,13 +42,19 @@ export default function RoleToggle({ userId, currentRole, currentUserId }) {
     <button
       onClick={handleToggle}
       disabled={loading}
-      className={`text-xs px-2.5 py-1 rounded-md font-bold transition shadow-sm cursor-pointer disabled:opacity-50 ${
-        newRole === "admin"
-          ? "bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200"
-          : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200"
+      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 disabled:opacity-50 ${
+        currentRole === "admin"
+          ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
+          : "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200"
       }`}
     >
-      {loading ? "..." : `→ ${newRole}`}
+      {loading ? (
+        <span>Оновлення...</span>
+      ) : (
+        <>
+          {currentRole === "admin" ? "👑 Понизити до Гостя" : "✨ Зробити Адміном"}
+        </>
+      )}
     </button>
   );
 }

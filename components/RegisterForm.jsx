@@ -1,171 +1,163 @@
-'use client'
+// Тиждень 12: RegisterForm на React Hook Form + Zod resolver + NextAuth auto-login + sonner
+"use client";
 
-import { useState } from 'react'
-import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import Link from "next/link";
+
+import { registerFormSchema } from "@/lib/validations/auth";
+import FormField from "@/components/forms/FormField";
 
 export default function RegisterForm() {
-  const router = useRouter()
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-  })
-  const [error, setError] = useState(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter();
+  
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(registerFormSchema),
+    defaultValues: { name: "", email: "", password: "", confirmPassword: "" },
+  });
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError(null)
-
-    // Клієнтська перевірка збігу паролів
-    if (formData.password !== formData.confirmPassword) {
-      setError('Паролі не збігаються')
-      return
-    }
-
-    setIsLoading(true)
-
+  const onSubmit = async (data) => {
     try {
-      // 1. Надсилаємо запит на створення користувача у наш API роут
-      const res = await fetch('/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
+          name: data.name,
+          email: data.email,
+          password: data.password,
         }),
-      })
+      });
+      const body = await res.json().catch(() => ({}));
 
-      const data = await res.json()
-
-      if (!res.ok) {
-        setError(data.error || 'Помилка реєстрації')
-        setIsLoading(false)
-        return
+      // Обробка конфлікту, якщо email вже зареєстрований у базі MongoDB
+      if (res.status === 409) {
+        setError("email", { type: "server", message: body.error || "Цей Email вже зареєстрований у системі" });
+        toast.error("Електронна адреса вже зайнята");
+        return;
+      }
+      
+      if (!res.ok) { 
+        toast.error(body.error || "Не вдалося завершити реєстрацію"); 
+        return; 
       }
 
-      // 2. Автоматичний вхід сесії за допомогою NextAuth після успішної реєстрації
-      const result = await signIn('credentials', {
-        email: formData.email,
-        password: formData.password,
+      // 🔐 Автоматичний безшовний вхід після успішної реєстрації
+      const signInResult = await signIn("credentials", {
+        email: data.email,
+        password: data.password,
         redirect: false,
-      })
-
-      if (result?.error) {
-        // Якщо акаунт створено, але сесія не піднялась — шлемо на звичайний логін
-        router.push('/auth/login')
-        return
+      });
+      
+      if (signInResult?.error) {
+        toast.warning("Акаунт створено успішно! Будь ласка, увійдіть вручну.");
+        router.push("/login");
+        return;
       }
-
-      // Перенаправляємо в панель керування
-      router.push('/dashboard')
-      router.refresh()
+      
+      toast.success("✨ Вітаємо у клубі Spa Oasis! Акаунт створено.");
+      router.push("/dashboard");
+      router.refresh();
     } catch {
-      setError('Щось пішло не так')
-      setIsLoading(false)
+      toast.error("Сталася технічна помилка при спробі реєстрації");
     }
-  }
+  };
 
   return (
-    <div className="max-w-md mx-auto mt-16 px-4">
-      <div className="bg-white rounded-2xl shadow-md p-8 border border-gray-100">
-        <h1 className="text-2xl font-black text-center mb-6 text-gray-900">
-          Реєстрація в <span className="text-emerald-600">Spa Oasis</span>
-        </h1>
+    <div className="min-h-[85vh] flex items-center justify-center bg-transparent px-4 py-6">
+      <div className="max-w-md w-full bg-white rounded-2xl border shadow-sm p-6 sm:p-8 animate-fadeIn">
+        
+        {/* Лого та заголовок */}
+        <div className="text-center mb-6">
+          <span className="text-3xl">🧘‍♂️</span>
+          <h1 className="text-2xl font-black text-gray-950 tracking-tight mt-2">
+            Створити акаунт гостя
+          </h1>
+          <p className="text-xs text-gray-400 font-medium mt-1">
+            Приєднуйтесь до Spa Oasis та бронюйте послуги онлайн
+          </p>
+        </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 text-sm font-medium">
-            ⚠️ {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-gray-700 font-bold mb-2 text-sm">
-              Ім’я адміністратора / майстра
-            </label>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          
+          {/* Поле: Ім'я */}
+          <FormField label="Ваше ім'я та прізвище" required error={errors.name?.message}>
             <input
               type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-              placeholder="Іван Іванов"
-              className="w-full px-4 py-2.5 text-gray-900 placeholder-gray-400 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition"
+              placeholder="Олена Ковальчук"
+              {...register("name")}
+              className={`w-full px-3.5 py-2 text-sm border rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition ${
+                errors.name ? "border-red-500 focus:ring-red-500/25" : "border-gray-200"
+              }`}
             />
-          </div>
+          </FormField>
 
-          <div>
-            <label className="block text-gray-700 font-bold mb-2 text-sm">
-              Email акаунту
-            </label>
+          {/* Поле: Email */}
+          <FormField label="Електронна пошта (Email)" required error={errors.email?.message}>
             <input
               type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              placeholder="example@oasis.com"
-              className="w-full px-4 py-2.5 text-gray-900 placeholder-gray-400 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition"
+              placeholder="elena@example.com"
+              {...register("email")}
+              className={`w-full px-3.5 py-2 text-sm border rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition ${
+                errors.email ? "border-red-500 focus:ring-red-500/25" : "border-gray-200"
+              }`}
             />
-          </div>
+          </FormField>
 
-          <div>
-            <label className="block text-gray-700 font-bold mb-2 text-sm">
-              Пароль (мінімум 6 символів)
-            </label>
+          {/* Поле: Пароль */}
+          <FormField label="Пароль" required error={errors.password?.message} hint="Мінімум 6 символів">
             <input
               type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              minLength={6}
+              autoComplete="new-password"
               placeholder="••••••••"
-              className="w-full px-4 py-2.5 text-gray-900 placeholder-gray-400 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition"
+              {...register("password")}
+              className={`w-full px-3.5 py-2 text-sm border rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition ${
+                errors.password ? "border-red-500 focus:ring-red-500/25" : "border-gray-200"
+              }`}
             />
-          </div>
+          </FormField>
 
-          <div>
-            <label className="block text-gray-700 font-bold mb-2 text-sm">
-              Підтвердження пароля
-            </label>
+          {/* Поле: Підтвердження пароля */}
+          <FormField label="Підтвердження пароля" required error={errors.confirmPassword?.message}>
             <input
               type="password"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              required
-              minLength={6}
+              autoComplete="new-password"
               placeholder="••••••••"
-              className="w-full px-4 py-2.5 text-gray-900 placeholder-gray-400 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition"
+              {...register("confirmPassword")}
+              className={`w-full px-3.5 py-2 text-sm border rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition ${
+                errors.confirmPassword ? "border-red-500 focus:ring-red-500/25" : "border-gray-200"
+              }`}
             />
-          </div>
+          </FormField>
 
+          {/* Кнопка реєстрації */}
           <button
             type="submit"
-            disabled={isLoading}
-            className="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition active:scale-98 disabled:opacity-50 disabled:pointer-events-none mt-2"
+            disabled={isSubmitting}
+            className="w-full bg-emerald-700 text-white py-2.5 px-4 rounded-lg hover:bg-emerald-800 text-sm font-bold transition disabled:opacity-50 shadow-sm mt-2"
           >
-            {isLoading ? 'Створення профілю...' : 'Створити акаунт'}
+            {isSubmitting ? "Реєстрація акаунту..." : "Зареєструватися"}
           </button>
         </form>
 
-        <p className="text-center mt-6 text-sm text-gray-600">
-          Вже маєте акаунт?{' '}
-          <Link href="/auth/login" className="text-emerald-600 hover:underline font-bold">
+        {/* Перехід до форми входу */}
+        <p className="mt-6 text-center text-sm text-gray-500 font-medium border-t pt-4 border-gray-50">
+          Вже є акаунт гостя?{" "}
+          <Link 
+            href="/login" 
+            className="text-emerald-700 hover:text-emerald-900 font-bold hover:underline transition"
+          >
             Увійти
           </Link>
         </p>
       </div>
     </div>
-  )
+  );
 }

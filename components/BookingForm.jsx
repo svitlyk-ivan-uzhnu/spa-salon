@@ -1,264 +1,238 @@
-'use client'
+// Тиждень 12: BookingForm на React Hook Form + useFieldArray + Zod + sonner
+"use client";
 
-import { useEffect, useState, useMemo } from 'react'
-import { useSession } from 'next-auth/react'
-import Link from 'next/link'
+import { useEffect, useMemo, useState } from "react";
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
+import Link from "next/link";
 
-// Порожня позиція для додавання нової послуги в чек
-const emptyItem = () => ({ service: '', quantity: 1 })
+import { createOrderSchema } from "@/lib/validations/order"; // Схема валідації Zod
+import FormField from "@/components/forms/FormField";
 
-export default function BookingForm({ onSubmit, isSubmitting, error }) {
-  const { data: session } = useSession()
-  const isAdmin = session?.user?.role === 'admin'
+export default function BookingForm() {
+  const router = useRouter();
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "admin";
 
-  const [services, setServices] = useState([])
-  const [items, setItems] = useState([emptyItem()])
-  const [notes, setNotes] = useState('')
-  const [loadingServices, setLoadingServices] = useState(true)
+  const [services, setServices] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [loadingServices, setLoadingServices] = useState(true);
 
-  // Список користувачів — лише для адміністратора
-  const [users, setUsers] = useState([])
-  
-  // 🎯 Стейт для вибору клієнта. Використовується ТІЛЬКИ адміном.
-  // За замовчуванням він порожній, і ми підставимо туди поточного адміна, якщо він не обере нікого іншого.
-  const [selectedUserId, setSelectedUserId] = useState('')
+  const {
+    register,
+    control,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(createOrderSchema),
+    defaultValues: {
+      user: "",
+      items: [{ drink: "", quantity: 1 }], // Залишаємо назву поля drink, як у схемі бази даних
+      notes: "",
+    },
+  });
 
-  // 1. Завантаження доступних спа-послуг
+  // Динамічний масив позицій для багатьох процедур за один візит
+  const { fields, append, remove } = useFieldArray({ control, name: "items" });
+
+  // 1. Завантажуємо список доступних спа-процедур
   useEffect(() => {
-    fetch('/api/services')
+    fetch("/api/services") // Або /api/drinks відповідно до твоїх роутів
       .then((res) => res.json())
       .then((data) => {
-        const available = (data || []).filter((s) => s.available)
-        setServices(available)
-        setLoadingServices(false)
+        setServices((data || []).filter((s) => s.available));
+        setLoadingServices(false);
       })
-      .catch(() => setLoadingServices(false))
-  }, [])
+      .catch(() => setLoadingServices(false));
+  }, []);
 
-  // 2. Завантаження списку користувачів для адмінки
+  // 2. Для адміністратора завантажуємо список клієнтів салону
   useEffect(() => {
-    if (!isAdmin) return
-    fetch('/api/users')
+    if (!isAdmin) return;
+    fetch("/api/users")
       .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) setUsers(data)
-      })
-      .catch(() => {})
-  }, [isAdmin])
+      .then((data) => { if (Array.isArray(data)) setUsers(data); });
+  }, [isAdmin]);
 
-  // Хеш-мапа для швидкого пошуку послуги за її ID під час рендерингу
+  // 3. БЕЗПЕЧНЕ заповнення ID замовника (запобігає багу Cascading Renders з твоїх скриншотів)
+  useEffect(() => {
+    const currentId = session?.user?.id || session?.user?._id;
+    if (isAdmin && currentId) {
+      setValue("user", currentId);
+    }
+  }, [isAdmin, session, setValue]);
+
+  // Хеш-мапа для миттєвого пошуку ціни процедури під час рендерингу
   const servicesById = useMemo(() => {
-    const map = new Map()
-    services.forEach((s) => map.set(s._id, s))
-    return map
-  }, [services])
+    const map = new Map();
+    services.forEach((s) => map.set(s._id, map.get(s._id) || s));
+    return map;
+  }, [services]);
 
-  // Розрахунок загальної вартості бронювання в реальному часі
+  // Живий підрахунок загальної вартості спа-дня
+  const watchedItems = watch("items");
   const totalPrice = useMemo(() => {
-    return items.reduce((sum, item) => {
-      const srv = servicesById.get(item.service)
-      if (!srv) return sum
-      return sum + srv.price * Number(item.quantity || 0)
-    }, 0)
-  }, [items, servicesById])
+    return (watchedItems || []).reduce((sum, item) => {
+      const service = servicesById.get(item?.drink);
+      if (!service) return sum;
+      return sum + service.price * Number(item?.quantity || 0);
+    }, 0);
+  }, [watchedItems, servicesById]);
 
-  // Оновлення окремого поля (вибір послуги або зміна кількості осіб)
-  const updateItem = (index, patch) => {
-    setItems((prev) => prev.map((it, i) => (i === index ? { ...it, ...patch } : it)))
-  }
-
-  // Додати ще одну процедуру до списку
-  const addItem = () => setItems((prev) => [...prev, emptyItem()])
-
-  // Видалити процедуру зі списку
-  const removeItem = (index) => {
-    setItems((prev) => (prev.length === 1 ? prev : prev.filter((_, i) => i !== index)))
-  }
-
-  // Перевірка валідності форми перед відправкою
-  const currentUserId = session?.user?.id || session?.user?._id
-  const canSubmit =
-    items.length > 0 &&
-    items.every((it) => it.service && Number(it.quantity) >= 1) &&
-    (!isAdmin || Boolean(selectedUserId || currentUserId))
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    const payload = {
-      items: items.map((it) => ({
-        service: it.service,
-        quantity: Number(it.quantity),
-      })),
-      notes: notes.trim(),
+  const onSubmit = async (data) => {
+    // Якщо оформлює звичайний користувач, поле замовника підставиться автоматично на бекенді з сесії
+    const payload = isAdmin && data.user ? data : { ...data, user: undefined };
+    
+    try {
+      const res = await fetch("/api/bookings", { // Або /api/orders
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json().catch(() => ({}));
+      
+      if (!res.ok) throw new Error(body.errors?.join(", ") || body.error || "Не вдалося оформити запис");
+      
+      toast.success("✨ Спа-візит успішно заброньовано!");
+      router.push(`/dashboard/bookings/${body._id}`);
+      router.refresh();
+    } catch (e) {
+      toast.error(e.message);
     }
-
-    // Якщо оформлює адмін — беремо або вибраного з випадаючого списку користувача,
-    // або (якщо нічого не вибрано) записуємо замовлення на самого адміна.
-    if (isAdmin) {
-      payload.user = selectedUserId || currentUserId
-    }
-
-    onSubmit(payload)
-  }
+  };
 
   if (loadingServices) {
     return (
-      <div className="bg-white rounded-lg shadow p-8 text-gray-500 text-center animate-pulse">
-        Завантаження списку спа-послуг...
+      <div className="bg-white rounded-xl border p-8 text-center text-gray-500 font-medium animate-pulse">
+        🌿 Завантаження спа-меню та списку майстрів...
       </div>
-    )
+    );
   }
 
   return (
-    <>
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
-          {error}
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-white p-6 sm:p-8 rounded-xl border shadow-sm">
+      
+      {/* Вибір клієнта (Доступно виключно Адміністратору) */}
+      {isAdmin && (
+        <FormField label="Гість салону (Замовник)" required error={errors.user?.message}>
+          <select 
+            {...register("user")} 
+            className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-emerald-500 bg-white transition"
+          >
+            <option value="">Оберіть користувача з бази даних</option>
+            {users.map((u) => (
+              <option key={u._id} value={u._id}>{u.name} ({u.email})</option>
+            ))}
+          </select>
+        </FormField>
+      )}
+
+      {/* Блок вибору процедур */}
+      <div>
+        <div className="flex justify-between items-center mb-3">
+          <label className="block text-gray-800 font-bold text-sm tracking-wide">
+            💆‍♂️ Обрані спа-процедури *
+          </label>
+          <button
+            type="button"
+            onClick={() => append({ drink: "", quantity: 1 })}
+            className="text-emerald-700 hover:text-emerald-900 text-xs font-bold bg-emerald-50 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition"
+          >
+            ➕ Додати ще процедуру
+          </button>
+        </div>
+
+        {/* Список обраних рядків послуг */}
+        <div className="space-y-3">
+          {fields.map((field, index) => {
+            const itemErrors = errors.items?.[index];
+            return (
+              <div key={field.id} className="flex gap-3 items-start bg-slate-50/60 p-4 rounded-xl border border-gray-100 transition animate-fadeIn">
+                
+                {/* Селект процедури */}
+                <div className="flex-1">
+                  <select 
+                    {...register(`items.${index}.drink`)} 
+                    className={`w-full px-3 py-2 text-sm border bg-white rounded-lg focus:outline-none focus:border-emerald-500 transition ${
+                      itemErrors?.drink ? "border-red-500" : "border-gray-200"
+                    }`}
+                  >
+                    <option value="">Оберіть процедуру зі спа-меню</option>
+                    {services.map((s) => (
+                      <option key={s._id} value={s._id}>{s.emoji} {s.name} — {s.price} грн</option>
+                    ))}
+                  </select>
+                  {itemErrors?.drink && (
+                    <p className="text-xs text-red-600 font-medium mt-1">⚠️ {itemErrors.drink.message}</p>
+                  )}
+                </div>
+
+                {/* Кількість людей / сеансів */}
+                <div className="w-24">
+                  <input
+                    type="number" min={1} max={20}
+                    placeholder="К-ть"
+                    {...register(`items.${index}.quantity`, { valueAsNumber: true })}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 bg-white rounded-lg focus:outline-none focus:border-emerald-500 text-center font-bold"
+                  />
+                </div>
+
+                {/* Видалити рядок */}
+                <button
+                  type="button"
+                  onClick={() => remove(index)}
+                  disabled={fields.length === 1}
+                  className="text-gray-400 hover:text-rose-600 disabled:text-gray-200 font-bold text-xl px-2 pt-1 transition"
+                  title="Видалити позицію"
+                >
+                  ✕
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Коментар до запису */}
+      <FormField label="Особливі побажання майстру або протипоказання" error={errors.notes?.message}>
+        <textarea 
+          rows="3" 
+          maxLength={300} 
+          placeholder="Наприклад: алергія на олії, кабінет для пари, додаткові рушники..."
+          {...register("notes")} 
+          className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-emerald-500 transition" 
+        />
+      </FormField>
+
+      {/* Блок фінального чеку */}
+      {totalPrice > 0 && (
+        <div className="bg-emerald-50 border border-emerald-100 px-5 py-4 rounded-xl flex justify-between items-center transition animate-fadeIn">
+          <span className="text-sm font-bold text-emerald-900">Загальна вартість візиту:</span>
+          <span className="text-2xl font-black text-emerald-800">{totalPrice} грн</span>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-lg shadow">
-        {/* Вибір клієнта (Тільки для Адміністратора) */}
-        {isAdmin && (
-          <div>
-            <label className="block text-gray-700 font-bold mb-2">Клієнт Спа-салону *</label>
-            <select
-              required
-              value={selectedUserId || currentUserId || ''}
-              onChange={(e) => setSelectedUserId(e.target.value)}
-              className="w-full px-4 py-2 border rounded focus:outline-none focus:border-emerald-500 bg-white"
-            >
-              <option value={currentUserId || ''}>Оформити на себе (Я — Адміністратор)</option>
-              {users.map((u) => (
-                // Ховаємо самого адміна зі списку, бо він уже є в опції за замовчуванням
-                u._id !== currentUserId && (
-                  <option key={u._id} value={u._id}>
-                    {u.name} ({u.email}){u.role === 'admin' ? ' — [Адмін]' : ''}
-                  </option>
-                )
-              ))}
-            </select>
-            <p className="text-xs text-gray-500 mt-1">
-              Адміністратор може створити запис на будь-якого клієнта салону або на себе.
-            </p>
-          </div>
-        )}
-
-        {/* Список обраних процедур */}
-        <div>
-          <div className="flex justify-between items-center mb-3">
-            <label className="block text-gray-700 font-bold">Обрані спа-процедури *</label>
-            <button
-              type="button"
-              onClick={addItem}
-              className="text-emerald-700 hover:text-emerald-900 text-sm font-bold flex items-center gap-1 transition"
-            >
-              ✨ + Додати процедуру
-            </button>
-          </div>
-
-          <div className="space-y-3">
-            {items.map((item, index) => {
-              const srv = servicesById.get(item.service)
-              const subtotal = srv ? srv.price * Number(item.quantity || 0) : 0
-              return (
-                <div
-                  key={index}
-                  className="flex flex-col sm:flex-row gap-3 items-start sm:items-center bg-gray-50 p-3 rounded border"
-                >
-                  <div className="flex-1 w-full">
-                    <select
-                      required
-                      value={item.service}
-                      onChange={(e) => updateItem(index, { service: e.target.value })}
-                      className="w-full px-3 py-2 border rounded focus:outline-none focus:border-emerald-500 bg-white"
-                    >
-                      <option value="">Оберіть спа-послугу</option>
-                      {services.map((s) => (
-                        <option key={s._id} value={s._id}>
-                          [{s.category}] {s.title} — {s.price} грн ({s.duration} хв)
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="w-full sm:w-28 flex items-center gap-2">
-                    <span className="text-xs text-gray-500 sm:hidden">Осіб:</span>
-                    <input
-                      type="number"
-                      min="1"
-                      max="20"
-                      required
-                      title="Кількість осіб"
-                      placeholder="Осіб"
-                      value={item.quantity}
-                      onChange={(e) => updateItem(index, { quantity: e.target.value })}
-                      className="w-full px-3 py-2 border rounded focus:outline-none focus:border-emerald-500 bg-white"
-                    />
-                  </div>
-
-                  <div className="w-full sm:w-24 text-right pr-2 text-sm font-medium text-gray-700">
-                    {subtotal ? `${subtotal} грн` : '—'}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => removeItem(index)}
-                    disabled={items.length === 1}
-                    className="text-red-500 hover:text-red-700 disabled:text-gray-300 text-2xl font-light self-end sm:self-center px-2 transition"
-                    title="Видалити процедуру"
-                  >
-                    &times;
-                  </button>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Побажання та коментарі */}
-        <div>
-          <label className="block text-gray-700 font-bold mb-2">Особливі побажання до майстра</label>
-          <textarea
-            rows="3"
-            maxLength="300"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Наприклад: майстер-жінка, алергія на цитрусові олії, парна кімната..."
-            className="w-full px-4 py-2 border rounded focus:outline-none focus:border-emerald-500"
-          />
-        </div>
-
-        {/* Блок фінальної вартості */}
-        {totalPrice > 0 && (
-          <div className="bg-emerald-50 border border-emerald-200 px-4 py-3 rounded transition-all">
-            <p className="text-gray-800 flex justify-between items-center">
-              <span>
-                <strong>Разом до сплати:</strong>{' '}
-                <span className="text-sm text-gray-500 ml-1">({items.length} послуг)</span>
-              </span>
-              <span className="text-2xl font-black text-emerald-700">{totalPrice} грн</span>
-            </p>
-          </div>
-        )}
-
-        {/* Кнопки дій */}
-        <div className="flex gap-4">
-          <button
-            type="submit"
-            disabled={isSubmitting || !canSubmit}
-            className="bg-emerald-700 text-white px-6 py-3 rounded hover:bg-emerald-800 font-bold disabled:opacity-50 transition"
-          >
-            {isSubmitting ? 'Бронювання...' : 'Підтвердити запис'}
-          </button>
-          <Link
-            href="/dashboard/bookings"
-            className="bg-gray-200 text-gray-700 px-6 py-3 rounded hover:bg-gray-300 font-bold inline-block text-center transition"
-          >
-            Скасувати
-          </Link>
-        </div>
-      </form>
-    </>
-  )
+      {/* Кнопки збереження */}
+      <div className="flex gap-4 border-t pt-5">
+        <button 
+          type="submit" 
+          disabled={isSubmitting}
+          className="bg-emerald-700 text-white px-6 py-2.5 rounded-lg hover:bg-emerald-800 font-bold disabled:opacity-50 transition shadow-sm text-sm"
+        >
+          {isSubmitting ? "Формування запису..." : "📋 Підтвердити бронювання"}
+        </button>
+        <Link 
+          href="/dashboard/bookings" 
+          className="bg-gray-100 text-gray-700 px-6 py-2.5 rounded-lg hover:bg-gray-200 font-bold text-sm inline-block transition text-center"
+        >
+          Скасувати
+        </Link>
+      </div>
+    </form>
+  );
 }

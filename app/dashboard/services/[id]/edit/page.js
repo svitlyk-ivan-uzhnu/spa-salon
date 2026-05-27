@@ -1,107 +1,71 @@
-'use client'
+// Тиждень 12: Сторінка редагування спа-процедури (спрощена)
+"use client";
 
-import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
-import DrinkForm from '@/components/DrinkForm'
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import Link from "next/link";
+import ServiceForm from "@/components/ServiceForm"; // Або DrinkForm, залежно від твого неймінгу
 
-export default function EditDrinkPage() {
-  const { id } = useParams()
-  const router = useRouter()
-  const [drink, setDrink] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState(null)
-  const [submitError, setSubmitError] = useState(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+export default function EditServicePage() {
+  const { id } = useParams();
+  const [service, setService] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
 
   useEffect(() => {
+    // Завантажуємо поточні дані процедури з API для ініціалізації дефолтних значень у React Hook Form
     fetch(`/api/services/${id}`)
       .then((res) => {
-        if (!res.ok) throw new Error('Процедуру не знайдено в базі даних')
-        return res.json()
+        if (!res.ok) throw new Error("Спа-процедуру не знайдено у каталозі салону");
+        return res.json();
       })
-      .then((data) => {
-        setDrink(data)
-        setLoading(false)
+      .then((data) => { 
+        setService(data); 
+        setLoading(false); 
       })
-      .catch((err) => {
-        setLoadError(err.message)
-        setLoading(false)
-      })
-  }, [id])
-
-  const handleSubmit = async (formData) => {
-    setSubmitError(null)
-    setIsSubmitting(true)
-
-    try {
-      const response = await fetch(`/api/services/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      })
-
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(
-          data.errors?.join(', ') || data.error || 'Помилка оновлення даних'
-        )
-      }
-
-      // Після успішного збереження повертаємо адміна назад до списку послуг
-      router.push('/dashboard/services')
-    } catch (err) {
-      setSubmitError(err.message)
-      setIsSubmitting(false)
-    }
-  }
+      .catch((err) => { 
+        setLoadError(err.message); 
+        setLoading(false); 
+      });
+  }, [id]);
 
   if (loading) {
     return (
-      <div className="p-2 space-y-4">
-        <div className="h-5 bg-gray-200 rounded-lg w-32 mb-4 animate-pulse"></div>
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 space-y-4">
-          <div className="h-8 bg-gray-200 rounded-lg w-48 animate-pulse"></div>
-          <div className="h-40 bg-gray-150 rounded-xl w-full animate-pulse"></div>
-        </div>
+      <div className="max-w-4xl mx-auto bg-white rounded-xl border p-8 shadow-sm space-y-4 animate-pulse">
+        <div className="h-6 bg-gray-200 rounded w-1/4"></div>
+        <div className="h-10 bg-gray-200 rounded w-full"></div>
+        <div className="h-32 bg-gray-200 rounded w-full"></div>
       </div>
-    )
+    );
   }
 
   if (loadError) {
     return (
-      <div className="p-2">
-        <Link href="/dashboard/services"
-          className="text-emerald-700 font-semibold hover:underline mb-4 inline-block">
-          &larr; Назад до каталогу
-        </Link>
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center max-w-md mx-auto mt-12">
-          <h2 className="text-2xl font-bold text-red-600 mb-2">Помилка завантаження</h2>
-          <p className="text-gray-600">{loadError}</p>
-        </div>
+      <div className="max-w-4xl mx-auto bg-red-50 border border-red-200 rounded-xl p-6 text-red-700 font-medium">
+        ⚠️ {loadError}
       </div>
-    )
+    );
   }
 
   return (
-    <div className="p-2">
-      <Link href="/dashboard/services"
-        className="text-emerald-700 font-semibold hover:underline mb-4 inline-block">
-        &larr; Скасувати та повернутися
+    <div className="max-w-4xl mx-auto">
+      {/* Посилання назад на картку перегляду цієї процедури */}
+      <Link 
+        href={`/dashboard/services/${id}`} 
+        className="text-emerald-700 hover:text-emerald-900 font-medium mb-4 inline-flex items-center gap-1 transition"
+      >
+        ← Назад до опису процедури
       </Link>
-
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-        <h1 className="text-3xl font-black mb-6 text-gray-900 tracking-tight">
-          Редагувати: {drink?.name}
+      
+      {/* Картка форми редагування */}
+      <div className="bg-white rounded-xl shadow-sm border p-6 sm:p-8">
+        <h1 className="text-3xl font-black text-gray-950 mb-6 tracking-tight">
+          ⚙️ Редагувати: <span className="text-emerald-800">{service?.emoji} {service?.name}</span>
         </h1>
-        <DrinkForm
-          initialData={drink}
-          onSubmit={handleSubmit}
-          submitLabel="Зберегти зміни"
-          isSubmitting={isSubmitting}
-          error={submitError}
-        />
+        
+        {/* Передаємо завантажені дані як initialData для автоматичного заповнення форми */}
+        <ServiceForm mode="edit" serviceId={id} initialData={service} />
       </div>
     </div>
-  )
+  );
 }

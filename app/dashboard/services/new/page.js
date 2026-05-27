@@ -1,58 +1,29 @@
-'use client'
+// Тиждень 12: Сторінка створення нової спа-процедури (спрощена)
+"use client";
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import DrinkForm from '@/components/DrinkForm'
+import Link from "next/link";
+import ServiceForm from "@/components/ServiceForm"; // Або DrinkForm, залежно від назви твого компонента
 
-export default function NewDrinkPage() {
-  const router = useRouter()
-  const [error, setError] = useState(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
-  const handleSubmit = async (formData) => {
-    setError(null)
-    setIsSubmitting(true)
-
-    try {
-      const response = await fetch('/api/services', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      })
-
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(
-          data.errors?.join(', ') || data.error || 'Помилка створення процедури'
-        )
-      }
-
-      router.push('/dashboard/services')
-    } catch (err) {
-      setError(err.message)
-      setIsSubmitting(false)
-    }
-  }
-
+export default function NewServicePage() {
   return (
-    <div className="p-2">
-      <Link href="/dashboard/services"
-        className="text-emerald-700 hover:text-emerald-800 font-semibold hover:underline mb-4 inline-block">
-        &larr; Назад до каталогу
+    <div className="max-w-4xl mx-auto">
+      {/* Кнопка повернення до загального списку послуг */}
+      <Link 
+        href="/dashboard/services" 
+        className="text-emerald-700 hover:text-emerald-900 font-medium mb-4 inline-flex items-center gap-1 transition"
+      >
+        ← Назад до каталогу процедур
       </Link>
-
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-        <h1 className="text-3xl font-black mb-6 text-gray-900 tracking-tight">
-          Додати нову спа-процедуру
+      
+      {/* Контейнер картки форми */}
+      <div className="bg-white rounded-xl shadow-sm border p-6 sm:p-8">
+        <h1 className="text-3xl font-black text-gray-950 mb-6 tracking-tight">
+          ➕ Додати нову спа-процедуру
         </h1>
-        <DrinkForm
-          onSubmit={handleSubmit}
-          submitLabel="Створити послугу"
-          isSubmitting={isSubmitting}
-          error={error}
-        />
+        
+        {/* Рендеримо спрощену форму в режимі створення */}
+        <ServiceForm mode="create" />
       </div>
     </div>
-  )
+  );
 }
