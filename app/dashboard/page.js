@@ -1,90 +1,82 @@
-// ✅ Виправили шлях до файлу хелперів (додали "s" на кінці @/lib/helpers)
-import { getDrinkStats } from "@/lib/helpers";
-import Link from "next/link";
+// Dashboard — Server Component для Spa Oasis
+// Тиждень 7: Статистика процедур з MongoDB через getDrinkStats()
+// Тиждень 11: Статистика спа-візитів доступна виключно адміністрації
+
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import StatsCard from "@/components/StatsCard";
+import { getDrinkStats, getBookingStats } from "@/lib/helpers"; // Підключаємо оновлений хелпер статистики
+
+export const metadata = {
+  title: "Панель керування | Spa Oasis",
+};
 
 export default async function DashboardPage() {
-  let stats = null;
-  let errorMsg = null;
+  const session = await getServerSession(authOptions);
+  const isAdmin = session?.user?.role === "admin";
 
-  try {
-    stats = await getDrinkStats();
-  } catch (error) {
-    errorMsg = error.message;
-  }
+  // Статистика візитів — лише для адмінів, тому запит до бази даних виконується умовно
+  const [serviceStats, bookingStats] = await Promise.all([
+    getDrinkStats(), // Хелпер з 7-го тижня для аналітики каталогу послуг
+    isAdmin ? getBookingStats() : Promise.resolve(null), // Запит виконується тільки для ролі admin
+  ]);
 
   return (
-    <div className="p-6 space-y-8">
-      {/* Привітання */}
-      <div className="flex justify-between items-center">
+    <div className="max-w-5xl mx-auto space-y-8">
+      {/* Привітання користувача */}
+      <div className="border-b pb-4 border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
         <div>
-          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
-            Огляд салону <span className="text-emerald-600">Spa Oasis 🌿</span>
+          <h1 className="text-3xl font-black text-gray-950 tracking-tight">
+            Вітаємо, {session?.user?.name || "Гість"}! 👋
           </h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Актуальна аналітика та стан каталогу послуг з бази даних MongoDB.
+          <p className="text-sm text-gray-500 font-medium mt-0.5">
+            Раді бачити вас в особистому кабінеті салону Spa Oasis.
           </p>
+        </div>
+        <span className={`inline-flex items-center text-xs font-bold px-3 py-1 rounded-full border ${
+          isAdmin ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-gray-50 text-gray-600 border-gray-200"
+        }`}>
+          {isAdmin ? "👑 Режим адміністратора" : "👤 Кабінет гостя"}
+        </span>
+      </div>
+
+      {/* РОЗДІЛ 1: АНАЛІТИКА КАТАЛОГУ ПОСЛУГ (Видно всім авторизованим користувачам) */}
+      <div>
+        <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+          💆‍♂️ Діюче спа-меню процедур
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <StatsCard title="Усього процедур у базі" value={serviceStats.total} color="emerald" />
+          <StatsCard title="Доступно для запису" value={serviceStats.available} color="green" />
+          <StatsCard title="Середня вартість сеансу" value={`${serviceStats.avgPrice} грн`} color="indigo" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
+          <StatsCard title="Категорії догляду" value={serviceStats.categoriesCount} color="blue" />
+          <StatsCard title="Тимчасово неактивні" value={serviceStats.unavailable} color="red" />
         </div>
       </div>
 
-      {/* Якщо база даних видала помилку підключення, показуємо картку помилки замість статистики */}
-      {errorMsg ? (
-        <div className="p-6 text-center max-w-xl mx-auto bg-red-50 border border-red-200 rounded-2xl shadow-sm">
-          <span className="text-4xl block mb-2">⚠️</span>
-          <h3 className="text-red-700 font-bold text-lg">Помилка аналітики</h3>
-          <p className="text-red-600 text-sm mt-1 mb-2">{errorMsg}</p>
-          <p className="text-xs text-gray-400">Перевірте правильність підключення до бази даних у файлі .env.local</p>
-        </div>
-      ) : (
-        /* Сітка з картками статистики (показується, коли все добре) */
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Всього послуг */}
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-5">
-            <div className="p-4 bg-emerald-50 rounded-xl text-2xl text-emerald-600 font-bold">📊</div>
-            <div>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400">Всього послуг</h3>
-              <p className="text-3xl font-black text-gray-900 mt-1">{stats?.total || 0}</p>
-            </div>
+      {/* РОЗДІЛ 2: ОПЕРАЦІЙНА СТАТИСТИКА ЗАПИСІВ (Конфіденційно: тільки для isAdmin && bookingStats) */}
+      {isAdmin && bookingStats && (
+        <div className="pt-4 border-t border-gray-100 animate-fadeIn">
+          <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+            📊 Звітність щодо спа-візитів салону
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <StatsCard title="Бронювань всього" value={bookingStats.total} color="emerald" />
+            <StatsCard title="⏳ Очікують підтвердження" value={bookingStats.pending} color="amber" />
+            <StatsCard title="✅ Успішно виконано" value={bookingStats.completed} color="green" />
           </div>
-
-          {/* Середня ціна */}
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-5">
-            <div className="p-4 bg-amber-50 rounded-xl text-2xl text-amber-600 font-bold">💰</div>
-            <div>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400">Середня вартість</h3>
-              <p className="text-3xl font-black text-gray-900 mt-1">{stats?.avgPrice || 0} грн</p>
+          
+          {/* Додаткові операційні індикатори за наявності розширеної аналітики */}
+          {(bookingStats.preparing !== undefined || bookingStats.ready !== undefined) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
+              <StatsCard title="💆‍♂️ Клієнти на процедурах зараз" value={bookingStats.preparing || 0} color="indigo" />
+              <StatsCard title="✨ Завершені (очікують оплати)" value={bookingStats.ready || 0} color="teal" />
             </div>
-          </div>
-
-          {/* Доступно зараз */}
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-5">
-            <div className="p-4 bg-blue-50 rounded-xl text-2xl text-blue-600 font-bold">✨</div>
-            <div>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400">Доступно зараз</h3>
-              <p className="text-3xl font-black text-gray-900 mt-1">
-                {stats?.available || 0} <span className="text-xs text-gray-400 font-normal">/ з {stats?.total || 0}</span>
-              </p>
-            </div>
-          </div>
+          )}
         </div>
       )}
-
-      {/* 🌿 Нижня плашка дій — тепер вона ЗА блоком помилки, має свій темний фон і закриті теги */}
-      <div className="bg-emerald-950 p-6 rounded-2xl shadow-md flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-emerald-900">
-        <div className="block">
-          <h3 className="text-lg font-bold text-white tracking-tight">
-            Бажаєш оновити прейскурант або додати нову процедуру?
-          </h3>
-          <p className="text-emerald-200/80 text-sm mt-1">
-            Перейди в менеджер послуг для повного керування записами.
-          </p>
-        </div>
-        <Link 
-          href="/dashboard/services" 
-          className="bg-white hover:bg-emerald-50 text-emerald-950 px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm transition active:scale-98 shrink-0 block text-center no-underline"
-        >
-          Управління послугами &rarr;
-        </Link>
-      </div>
     </div>
   );
 }

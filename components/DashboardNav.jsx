@@ -1,54 +1,53 @@
-// Компонент DashboardNav — навігація для адміністративної панелі 🌿
-// Тиждень 9: додано умовний пункт "Користувачі" тільки для admin
+'use client'
 
-'use client';
-
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 
 export default function DashboardNav() {
-  const pathname = usePathname();
-  const { data: session } = useSession();
-  
-  // Перевіряємо, чи має поточний користувач роль адміна
-  const isAdmin = session?.user?.role === "admin";
+  const pathname = usePathname()
+  const { data: session } = useSession()
+  const isAdmin = session?.user?.role === 'admin'
 
-  // Динамічний масив посилань на основі структури Spa Oasis
+  // Динамічний масив посилань для Spa Oasis
   const links = [
-    { href: "/dashboard", label: "Огляд" },
-    { href: "/dashboard/services", label: "Послуги" },
-    { href: "/dashboard/bookings", label: "Бронювання" },
-    // Пункт "Користувачі" додається в масив тільки якщо isAdmin === true
-    ...(isAdmin ? [{ href: "/dashboard/users", label: "Користувачі" }] : []),
+    { href: "/dashboard",          label: "🌿 Огляд" },
+    { href: "/dashboard/bookings", label: "📅 Спа-візити" }, 
+    { href: "/dashboard/services", label: "💆‍♂️ Процедури" }, 
+    ...(isAdmin ? [{ href: "/dashboard/users", label: "👥 Користувачі" }] : []),
   ];
 
   return (
-    <nav className="p-2">
-      <ul className="space-y-2">
-        {links.map((link) => {
-          // Точне визначення активного пункту меню
-          const isActive =
-            link.href === "/dashboard"
-              ? pathname === "/dashboard"
-              : pathname.startsWith(link.href);
+    <nav className="bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between h-16">
+          <div className="flex space-x-8 overflow-x-auto no-scrollbar">
+            {links.map((link) => {
+              // Перевіряємо, чи є посилання активним в даний момент
+              const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`)
 
-          return (
-            <li key={link.href}>
-              <Link
-                href={link.href}
-                className={`block px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-                  isActive
-                    ? "bg-emerald-900 text-white font-bold shadow-sm"
-                    : "text-slate-300 hover:bg-slate-800/60 hover:text-white"
-                }`}
-              >
-                {link.href === "/dashboard/users" ? `👥 ${link.label}` : link.label}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-bold whitespace-nowrap transition-colors duration-200 ${
+                    isActive
+                      ? "border-emerald-700 text-emerald-800"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              )
+            })}
+          </div>
+          
+          {/* Поточна роль у кутку для зручності відладки */}
+          <div className="hidden sm:flex items-center text-xs font-black uppercase tracking-wider text-gray-400">
+            {isAdmin ? "👑 Адміністратор" : "👤 Клієнт"}
+          </div>
+        </div>
+      </div>
     </nav>
-  );
+  )
 }
