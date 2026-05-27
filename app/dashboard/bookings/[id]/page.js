@@ -6,8 +6,8 @@ import Link from 'next/link'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import dbConnect from '@/lib/db'
-import Booking from '@/lib/models/Order'       // Відповідає схемі Order з таски
-import BookingItem from '@/lib/models/OrderItem' // Відповідає схемі OrderItem з таски
+import Booking from "@/lib/models/Booking";
+import BookingItem from "@/lib/models/BookingItem";
 import Service from '@/lib/models/Drink'         // Відповідає схемі Drink з таски
 import User from '@/lib/models/User'
 import BookingStatusBadge from '@/components/BookingStatusBadge'

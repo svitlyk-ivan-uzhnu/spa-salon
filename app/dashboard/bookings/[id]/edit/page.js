@@ -6,10 +6,12 @@ import { useRouter, useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+
 import { toast } from "sonner";
 import Link from "next/link";
 
-import { updateOrderSchema } from "@/lib/validations/order"; // Твоя схема валідації для оновлення замовлень
+import { userUpdateBookingSchema } from "@/lib/validations/booking";
+ // Твоя схема валідації для оновлення замовлень
 import FormField from "@/components/forms/FormField";
 
 // Статуси адаптовані під бізнес-процеси Spa Oasis
@@ -36,7 +38,7 @@ export default function EditBookingPage() {
     reset,
     formState: { errors, isSubmitting },
   } = useForm({
-    resolver: zodResolver(updateOrderSchema),
+    resolver: zodResolver(userUpdateBookingSchema),
     defaultValues: { status: "pending", notes: "" },
   });
 

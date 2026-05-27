@@ -55,7 +55,7 @@ export default function StreamingPage() {
       
       <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl mb-8">
         <p className="text-emerald-800 text-sm font-medium">
-          🚀 <strong>Як це працює:</strong> Сервер віддає HTML-код частинами (стрімом). Швидка статистика з'явиться всього через 0.5 сек, а повільні відгуки довантажаться через 3 секунди самостійно.
+          🚀 <strong>Як це працює:</strong> Сервер віддає HTML-код частинами (стрімом). Швидка статистика зявиться всього через 0.5 сек, а повільні відгуки довантажаться через 3 секунди самостійно.
         </p>
       </div>
 

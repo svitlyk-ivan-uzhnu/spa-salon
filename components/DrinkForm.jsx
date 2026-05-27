@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 
 // Імпортуємо схему валідації (використовуємо твою схему з лінтингу)
-import { createDrinkSchema } from "@/lib/validations/drink";
+import { createServiceSchema as createDrinkSchema } from "@/lib/validations/service";
 import FormField from "@/components/forms/FormField";
 
 // Категорії адаптовані під спа-салон Spa Oasis

@@ -5,7 +5,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import StatsCard from "@/components/StatsCard";
-import { getDrinkStats, getBookingStats } from "@/lib/helpers"; // Підключаємо оновлений хелпер статистики
+import { getBookingStats } from "@/lib/helpers"; // Підключаємо оновлений хелпер статистики
 
 export const metadata = {
   title: "Панель керування | Spa Oasis",
@@ -17,7 +17,7 @@ export default async function DashboardPage() {
 
   // Статистика візитів — лише для адмінів, тому запит до бази даних виконується умовно
   const [serviceStats, bookingStats] = await Promise.all([
-    getDrinkStats(), // Хелпер з 7-го тижня для аналітики каталогу послуг
+    getBookingStats(), // Хелпер з 7-го тижня для аналітики каталогу послуг
     isAdmin ? getBookingStats() : Promise.resolve(null), // Запит виконується тільки для ролі admin
   ]);
 

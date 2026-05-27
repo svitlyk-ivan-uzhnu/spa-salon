@@ -9,7 +9,8 @@ import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import Link from "next/link";
 
-import { createOrderSchema } from "@/lib/validations/order"; // Схема валідації Zod
+import { createBookingSchema } from "@/lib/validations/booking";
+
 import FormField from "@/components/forms/FormField";
 
 export default function BookingForm() {
@@ -29,7 +30,7 @@ export default function BookingForm() {
     setValue,
     formState: { errors, isSubmitting },
   } = useForm({
-    resolver: zodResolver(createOrderSchema),
+    resolver: zodResolver(createBookingSchema),
     defaultValues: {
       user: "",
       items: [{ drink: "", quantity: 1 }], // Залишаємо назву поля drink, як у схемі бази даних

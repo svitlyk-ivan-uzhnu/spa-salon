@@ -5,8 +5,8 @@
 import dbConnect from "@/lib/db";
 import Service from "@/lib/models/Drink";     // Твоя модель Drink, що виконує роль спа-послуги
 import User from "@/lib/models/User";
-import Booking from "@/lib/models/Order";       // Твоя модель Order, що виконує роль замовлення/візиту
-import BookingItem from "@/lib/models/OrderItem"; // Твоя модель OrderItem, що виконує роль позиції візиту
+import Booking from "@/lib/models/Booking";
+import BookingItem from "@/lib/models/BookingItem";
 import bcrypt from "bcryptjs";
 
 // Початковий каталог спа-процедур салону Spa Oasis

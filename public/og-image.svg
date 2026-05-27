@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="spaBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#022c22" /> <stop offset="100%" stop-color="#064e3b" /> </linearGradient>
+  </defs>
+  
+  <rect width="1200" height="630" fill="url(#spaBg)" />
+  
+  <circle cx="1100" cy="550" r="300" fill="#047857" opacity="0.2" />
+  <circle cx="100" cy="80" r="150" fill="#10b981" opacity="0.1" />
+
+  <text x="600" y="290" font-family="system-ui, -apple-system, sans-serif" font-size="110" font-weight="900"
+        fill="#ffffff" text-anchor="middle" letter-spacing="-2">Spa Oasis</text>
+        
+  <text x="600" y="390" font-family="system-ui, -apple-system, sans-serif" font-size="32" font-weight="500"
+        fill="#a7f3d0" text-anchor="middle" letter-spacing="4">ТВІЙ ПРОСТІР ГАРМОНІЇ ТА РЕЛАКСУ</text>
+</svg>

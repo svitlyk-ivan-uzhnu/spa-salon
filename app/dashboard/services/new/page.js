@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import ServiceForm from "@/components/ServiceForm"; // Або DrinkForm, залежно від назви твого компонента
+import ServiceForm from "@/components/DrinkForm";
 
 export default function NewServicePage() {
   return (

@@ -1,10 +1,9 @@
 // app/layout.js
 import { Toaster } from "sonner"; // ✨ Імпорт бібліотеки сповіщень sonner
 import AuthProvider from "@/components/AuthProvider";
-import FavoritesProvider from "@/components/FavoritesProvider";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import "@/styles/globals.css"; // Твої глобальні стилі CSS (може відрізнятися шлях)
+import "@/app/globals.css" // Твої глобальні стилі CSS (може відрізнятися шлях)
 
 export const metadata = {
   title: "Spa Oasis — Твій простір релаксу",
@@ -16,7 +15,7 @@ export default function RootLayout({ children }) {
     <html lang="uk">
       <body className="min-h-screen flex flex-col bg-slate-50 text-slate-900 antialiased">
         <AuthProvider>
-          <FavoritesProvider>
+          
             {/* Навігаційна шапка сайту */}
             <Header />
             
@@ -27,7 +26,7 @@ export default function RootLayout({ children }) {
             
             {/* Футер */}
             <Footer />
-          </FavoritesProvider>
+         
         </AuthProvider>
 
         {/* 🔔 Глобальний Toaster для гарних та спливаючих повідомлень */}

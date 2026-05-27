@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import ServiceForm from "@/components/ServiceForm"; // Або DrinkForm, залежно від твого неймінгу
+import ServiceForm from "@/components/DrinkForm";
 
 export default function EditServicePage() {
   const { id } = useParams();
